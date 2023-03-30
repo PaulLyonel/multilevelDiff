@@ -74,7 +74,7 @@ component-wise), default fun(x)=x
     return xB,lam
 
 def get_grid(sde, input_channels, input_height,prior, n=4, num_steps=100, transform=None, 
-             mean=0, std=1, clip=True):#archetype=archetype
+             mean=0, std=1, clip=True):
     num_samples = n ** 2
     delta = sde.T / num_steps
     y0 = torch.randn(num_samples, 1, input_height, input_height).to(sde.T)
