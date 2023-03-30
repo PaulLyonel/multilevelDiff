@@ -17,7 +17,7 @@ device = 'cuda'
 input_channels = 1
 input_height = 16
 n_epochs = 300
-archetype = 'standfno'
+archetype = 'standfno' #or 'stand' or 'lapfno'
 dimx = input_channels * input_height ** 2
 
 
@@ -138,7 +138,8 @@ def training(seed):
     for ep in range(n_epochs):
         print('EPOCH:', ep)
         for k,(x,y) in enumerate(trainloader):
-            x = x.to(device) - torch.mean(x, dim = 0)
+            x = x.to(device) 
+            x = x - torch.mean(x, dim = 0)
             loss = gen_sde.dsm(pool(x), prior).mean()
             optim.zero_grad()
             loss.backward()
