@@ -17,7 +17,7 @@ device = 'cuda'
 input_channels = 1
 input_height = 16
 n_epochs = 300
-archetype = 'standfno' #or 'stand' or 'lapfno'
+archetype = 'lapfno' #or 'stand' or 'standfno'
 dimx = input_channels * input_height ** 2
 
 
