@@ -9,6 +9,50 @@ device = 'cuda'
 def Q_g2_s(g,a):
     return g*a #g*a = Q*g^2*(gradlog p)
 
+def compConv(x,fun= lambda x : x):
+    """
+    compute fun(conv_op(K))*x assuming periodic boundary conditions on x
+
+    where
+    K       - is a 2D convolution stencil (assumed to be separable)
+    conv_op - means that we build the matrix representation of the operator
+    fun     - is a function applied to the operator (as a matrix-function, not
+component-wise), default fun(x)=x
+    x       - are images, torch.tensor, shape=N x 1 x nx x ny
+    """
+    n = x.shape
+    # Laplacian stencil
+    nx = n[2]
+    ny = n[3]
+    hx = 1.0/nx
+    hy = 1.0/ny
+    # Laplacian stencil
+    K = torch.zeros(3,3)
+    K[1,1] = 2.0/(hx**2) + 2.0/(hy**2)
+    K[0,1] = -1.0/(hy**2)
+    K[1,0] = -1.0/(hx**2)
+    K[2,1] = -1.0/(hy**2)
+    K[1,2] = -1.0/(hx**2)
+    K = K.to(device)
+    m = K.shape
+    mid1 = (m[0]-1)//2
+    mid2 = (m[1]-1)//2
+    Bp = torch.zeros(n[2],n[3], device = device)
+    Bp[0:mid1+1,0:mid2+1] = K[mid1:,mid2:]
+    Bp[-mid1:, 0:mid2 + 1] = K[0:mid1, -(mid2 + 1):]
+    Bp[0:mid1 + 1, -mid2:] = K[-(mid1 + 1):, 0:mid2]
+    Bp[-mid1:, -mid2:] = K[0:mid1, 0:mid2]
+    xh = torch.fft.rfft2(x)
+    Bh = torch.fft.rfft2(Bp)
+    lam = fun(torch.abs(Bh)).to(device)
+    xh = xh.to(device)
+    lam[torch.isinf(lam)] = 0.0
+    xBh = xh * lam.unsqueeze(0).unsqueeze(0)
+    xB = torch.fft.irfft2(xBh)
+    xB = 9*xB
+
+    return xB,lam
+
 def sample_rademacher(shape):
     return (torch.rand(*shape).ge(0.5)).float() * 2 - 1
 
@@ -30,7 +74,7 @@ class VariancePreservingSDE(torch.nn.Module):
     Implementation of the variance preserving SDE proposed by Song et al. 2021
     See eq (32-33) of https://openreview.net/pdf?id=PxTIG12RRHS
     """
-    def __init__(self, alpha_min=0.1, alpha_max=20.0, T=1.0, t_epsilon=0.001, prior = None, archetype=None):
+    def __init__(self, alpha_min=0.1, alpha_max=20.0, T=1.0, t_epsilon=0.001, prior = None, archetype='standfno'):
         super().__init__()
         self.alpha_min = alpha_min
         self.alpha_max = alpha_max
@@ -110,7 +154,7 @@ class PluginReverseSDE(torch.nn.Module):
     def dsm(self, x,prior):
         """
         denoising score matching loss
-        """        
+        """ 
         t_ = torch.rand([x.size(0), ] + [1 for _ in range(x.ndim - 1)]).to(x) * self.T
         y, target, std, g = self.base_sde.sample(t_, x, prior, return_noise=True)
         target = target.to(device) #eta
