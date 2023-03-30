@@ -30,7 +30,7 @@ class VariancePreservingSDE(torch.nn.Module):
     Implementation of the variance preserving SDE proposed by Song et al. 2021
     See eq (32-33) of https://openreview.net/pdf?id=PxTIG12RRHS
     """
-    def __init__(self, alpha_min=0.1, alpha_max=20.0, T=1.0, t_epsilon=0.001, prior = None, archetype='standfno'):
+    def __init__(self, alpha_min=0.1, alpha_max=20.0, T=1.0, t_epsilon=0.001, prior = None, archetype=None):
         super().__init__()
         self.alpha_min = alpha_min
         self.alpha_max = alpha_max
