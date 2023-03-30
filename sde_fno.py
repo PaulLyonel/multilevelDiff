@@ -7,7 +7,7 @@ device = 'cuda'
 # huang sde code
 
 def Q_g2_s(g,a):
-    return g*a #g*a = Q*g^2*s
+    return g*a #g*a = Q*g^2*(gradlog p)
 
 def sample_rademacher(shape):
     return (torch.rand(*shape).ge(0.5)).float() * 2 - 1
@@ -42,10 +42,10 @@ class VariancePreservingSDE(torch.nn.Module):
     def alpha(self, t):
         return self.alpha_min + (self.alpha_max-self.alpha_min)*t
 
-    def mean_weight(self, t):
+    def mean_weight(self, t): #tilde alpha
         return torch.exp(-0.25 * t**2 * (self.alpha_max-self.alpha_min) - 0.5 * t * self.alpha_min)
 
-    def var(self, t):
+    def var(self, t): #tilde beta
         return 1. - torch.exp(-0.5 * t**2 * (self.alpha_max-self.alpha_min) - t * self.alpha_min)
 
     def f(self, t, y):
