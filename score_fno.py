@@ -17,7 +17,7 @@ device = 'cuda'
 input_channels = 1
 input_height = 16
 n_epochs = 300
-
+archetype = 'standfno'
 dimx = input_channels * input_height ** 2
 
 
@@ -29,13 +29,59 @@ trainloader = torch.utils.data.DataLoader(trainset, batch_size=32,
                                           shuffle=True, num_workers=0)
 
 
+def compConv(x,fun= lambda x : x):
+    """
+    compute fun(conv_op(K))*x assuming periodic boundary conditions on x
+
+    where
+    K       - is a 2D convolution stencil (assumed to be separable)
+    conv_op - means that we build the matrix representation of the operator
+    fun     - is a function applied to the operator (as a matrix-function, not
+component-wise), default fun(x)=x
+    x       - are images, torch.tensor, shape=N x 1 x nx x ny
+    """
+    n = x.shape
+    # Laplacian stencil
+    nx = n[2]
+    ny = n[3]
+    hx = 1.0/nx
+    hy = 1.0/ny
+    # Laplacian stencil
+    K = torch.zeros(3,3)
+    K[1,1] = 2.0/(hx**2) + 2.0/(hy**2)
+    K[0,1] = -1.0/(hy**2)
+    K[1,0] = -1.0/(hx**2)
+    K[2,1] = -1.0/(hy**2)
+    K[1,2] = -1.0/(hx**2)
+    K = K.to(device)
+    m = K.shape
+    mid1 = (m[0]-1)//2
+    mid2 = (m[1]-1)//2
+
+    Bp = torch.zeros(n[2],n[3], device = device)
+    Bp[0:mid1+1,0:mid2+1] = K[mid1:,mid2:]
+    Bp[-mid1:, 0:mid2 + 1] = K[0:mid1, -(mid2 + 1):]
+    Bp[0:mid1 + 1, -mid2:] = K[-(mid1 + 1):, 0:mid2]
+    Bp[-mid1:, -mid2:] = K[0:mid1, 0:mid2]
+    xh = torch.fft.rfft2(x)
+    Bh = torch.fft.rfft2(Bp)
+    lam = fun(torch.abs(Bh)).to(device)
+    xh = xh.to(device)
+    lam[torch.isinf(lam)] = 0.0
+    xBh = xh * lam.unsqueeze(0).unsqueeze(0)
+    xB = torch.fft.irfft2(xBh)
+    xB = 9*xB
+    return xB,lam
+
 def get_grid(sde, input_channels, input_height,prior, n=4, num_steps=100, transform=None, 
-             mean=0, std=1, clip=True):
+             mean=0, std=1, clip=True, archetype='standfno'):
     num_samples = n ** 2
     delta = sde.T / num_steps
     y0 = torch.randn(num_samples, 1, input_height, input_height).to(sde.T)
-    y0 = prior(y0)
-
+    if archetype == "standfno":
+        y0 = prior(y0)
+    if archetype == "lapfno":
+        y0 = compConv(y0, fun = lambda x: (1/torch.sqrt(x)))[0]
     ts = torch.linspace(0, 1, num_steps + 1).to(y0) * sde.T
     ones = torch.ones(num_samples, 1, 1, 1).to(y0)
 
@@ -45,7 +91,11 @@ def get_grid(sde, input_channels, input_height,prior, n=4, num_steps=100, transf
 
             sigma = sde.sigma(ones * ts[i], y0, lmbd = 0.)
             epsilon = torch.randn(y0.shape[0],1,y0.shape[2],y0.shape[3], device = device)
-            epsilon = prior(epsilon)
+            
+            if archetype == "standfno":
+                epsilon = prior(epsilon)
+            if archetype == "lapfno":
+                epsilon = compConv(epsilon, fun = lambda x: (1/torch.sqrt(x)))[0]
             y0 = y0 + delta * mu + delta ** 0.5 * sigma * epsilon
 
     return y0
@@ -63,7 +113,7 @@ def save_from_model(gen_sde,res, seed, prior):
             arr = arr.astype(np.uint8).squeeze(0)
 
             im = Image.fromarray(arr)
-            im.save("samples_fno"+str(res)+"seed"+str(seed)+"/{}.jpeg".format(i*100+j))
+            im.save("samples_"+archetype+str(res)+"seed"+str(seed)+"/{}.jpeg".format(i*100+j))
 
         
 def training(seed):
@@ -79,7 +129,7 @@ def training(seed):
     pool = torch.nn.AvgPool2d(2)
 
 
-    inf_sde = VariancePreservingSDE(beta_min=0.1, beta_max=20.0, T=T, prior = prior)
+    inf_sde = VariancePreservingSDE(alpha_min=0.1, alpha_max=20.0, T=T, prior = prior, archetype = archetype)
     gen_sde = PluginReverseSDE(inf_sde, drift_q, T, vtype='Rademacher', debias=False, prior = prior).to(device)
     optim = torch.optim.Adam(gen_sde.parameters(), lr=1e-4)
 
@@ -88,7 +138,7 @@ def training(seed):
     for ep in range(n_epochs):
         print('EPOCH:', ep)
         for k,(x,y) in enumerate(trainloader):
-            x = x.to(device)       
+            x = x.to(device) - torch.mean(x, dim = 0)
             loss = gen_sde.dsm(pool(x), prior).mean()
             optim.zero_grad()
             loss.backward()
@@ -102,7 +152,7 @@ def training(seed):
     axs = axs.flatten()
     for img, ax in zip(grid,axs):
         ax.imshow(img.squeeze(0).cpu().data.numpy(), vmin = 0., vmax = 1., cmap = 'gray')
-    plt.savefig('fno16_grid'+str(seed))
+    plt.savefig(archetype+'16_grid'+str(seed))
     plt.figure()
     grid = get_grid(gen_sde, 1, 32, prior,n=4,
                           num_steps=200, transform=None)
@@ -110,7 +160,7 @@ def training(seed):
     axs = axs.flatten()
     for img, ax in zip(grid,axs):
         ax.imshow(img.squeeze(0).cpu().data.numpy(), vmin = 0., vmax = 1., cmap = 'gray')
-    plt.savefig('fno32_grid'+str(seed))
+    plt.savefig(archetype+'32_grid'+str(seed))
             
 
     save_from_model(gen_sde, 16, seed, prior)
