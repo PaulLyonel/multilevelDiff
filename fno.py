@@ -94,7 +94,6 @@ class FNO2d(nn.Module):
         self.fc0 = nn.Linear(4, self.width) # input channel is 3: (a(x, y), x, y)
         self.fc1 = nn.Linear(self.width, 128)
         self.fc2 = nn.Linear(128, 1)
-        #batch norm?
 
 
     def forward(self, x,t):
