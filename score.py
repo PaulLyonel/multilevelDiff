@@ -32,12 +32,8 @@ def get_grid(sde, input_channels, input_height,prior, n=4, num_steps=100, transf
              mean=0, std=1, clip=True):
     num_samples = n ** 2
     delta = sde.T / num_steps
-    #put this to prior too
-    #y0 = torch.randn(num_samples, 1, input_height, input_height).to(sde.T)
-    ###
     y0 = prior.sample([num_samples, 1, input_height, input_height])
     y0 = prior.Qmv(y0)
-    ###
     ts = torch.linspace(0, 1, num_steps + 1).to(y0) * sde.T
     ones = torch.ones(num_samples, 1, 1, 1).to(y0)
 
