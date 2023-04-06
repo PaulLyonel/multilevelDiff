@@ -10,14 +10,14 @@ import matplotlib.pyplot as plt
 
 from fno import *
 from sde import * 
-from testsettings import *
+from priors import *
 
-device = 'cuda'
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # starting dimensions
 input_channels = 1
 input_height = 16
-n_epochs = 300
+n_epochs = 2
 dimx = input_channels * input_height ** 2
 
 
@@ -32,9 +32,12 @@ def get_grid(sde, input_channels, input_height,prior, n=4, num_steps=100, transf
              mean=0, std=1, clip=True):
     num_samples = n ** 2
     delta = sde.T / num_steps
-    y0 = torch.randn(num_samples, 1, input_height, input_height).to(sde.T)
-    
-    #y0 = prior(y0)
+    #put this to prior too
+    #y0 = torch.randn(num_samples, 1, input_height, input_height).to(sde.T)
+    ###
+    y0 = prior.sample([num_samples, 1, input_height, input_height])
+    y0 = prior.Qmv(y0)
+    ###
     ts = torch.linspace(0, 1, num_steps + 1).to(y0) * sde.T
     ones = torch.ones(num_samples, 1, 1, 1).to(y0)
 
@@ -42,7 +45,8 @@ def get_grid(sde, input_channels, input_height,prior, n=4, num_steps=100, transf
         for i in range(num_steps):
             mu = sde.mu(ones * ts[i], y0, lmbd = 0.)
             sigma = sde.sigma(ones * ts[i], y0, lmbd = 0.)
-            epsilon = prior_distr(y0.shape, prior)
+            rawepsilon = prior.sample(y0.shape)
+            epsilon = prior.Qmv(rawepsilon)
             y0 = y0 + delta * mu + (delta ** 0.5) * sigma * epsilon
     return y0
 
@@ -54,7 +58,9 @@ def save_from_model(gen_sde,res, seed, prior):
 
 
         for j in range(sampled_images.shape[0]):
+            ####
             sample_image = torch.clamp(sampled_images[j],0.,1.)
+            ####
             arr = sample_image.cpu().data.numpy()*255
             arr = arr.astype(np.uint8).squeeze(0)
 
@@ -74,8 +80,8 @@ def training(seed):
     pool = torch.nn.AvgPool2d(2)
 
 
-    inf_sde = VariancePreservingSDE(priorsetting=prior_distr, alpha_min=0.1, alpha_max=20.0, T=T )
-    gen_sde = PluginReverseSDE(inf_sde, drift_q, T, vtype='Rademacher', debias=False).to(device)
+    inf_sde = VariancePreservingSDE(prior, alpha_min=0.1, alpha_max=20.0, T=T )
+    gen_sde = PluginReverseSDE(prior, inf_sde, drift_q, T, vtype='Rademacher', debias=False).to(device)
     optim = torch.optim.Adam(gen_sde.parameters(), lr=1e-4)
 
     gen_sde.train()
@@ -92,7 +98,7 @@ def training(seed):
 
     gen_sde.eval()
     plt.figure()
-    grid = get_grid(gen_sde, 1, 16, prior,n=4,
+    grid = get_grid(gen_sde, 1, 16, prior, n=4,
                           num_steps=200, transform=None)
     fig, axs = plt.subplots(4,4, figsize = (12,12))
     axs = axs.flatten()
@@ -100,7 +106,7 @@ def training(seed):
         ax.imshow(img.squeeze(0).cpu().data.numpy(), vmin = 0., vmax = 1., cmap = 'gray')
     plt.savefig('sample16_grid'+str(seed)) 
     plt.figure()
-    grid = get_grid(gen_sde, 1, 32, prior,n=4,
+    grid = get_grid(gen_sde, 1, 32, prior, n=4,
                           num_steps=200, transform=None)
     fig, axs = plt.subplots(4,4, figsize = (12,12))
     axs = axs.flatten()
