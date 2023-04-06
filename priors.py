@@ -12,13 +12,18 @@ class StandardNormal():
     # def __init__(self, shape_vec):
     #     self.shape_vec = shape_vec
 
+    #standard noise
     def sample(self,shape_vec):
         x = torch.randn(shape_vec[0],1,shape_vec[2],shape_vec[3]).to(device)
-        return x #torch.randn(N,self.d)
+        return x
 
+    #covariance
     def Qmv(self,v):
         return v
 
+    #loss structure
+    #g*a means the Q in reverse drift is learned implicitly in a
+    #self.Qmv(g*a) means the Q is given explictly
     def Q_g2_s(self, g,a): 
         return g*a 
 
