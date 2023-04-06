@@ -6,7 +6,7 @@ from fno import *
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # huang sde code
-prior = FNOprior()  #FNOprior #ImplicitConv
+prior = FNOprior()  #ImplicitConv
 model = FNO2d(8,8,64).to(device)
 
 class VariancePreservingSDE(torch.nn.Module):
