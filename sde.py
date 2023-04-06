@@ -92,7 +92,7 @@ class PluginReverseSDE(torch.nn.Module):
         target = target.to(device) #eta
 
         a = self.a(y, t_.squeeze())
-        score = a*std_weight / g
+        score = a*std_weight / g  #a =(Q*(y-mu)*g)/(std_weight*Q)
 
         return ((score+target)**2).view(x.size(0), -1).sum(1, keepdim=False) / 2 
 
