@@ -10,6 +10,7 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from unet import UNet
 from fno import *
+from unet import *
 from sde import * 
 from priors import *
 
@@ -47,19 +48,18 @@ def get_grid(sde, input_channels, input_height, args, transform=None,
     return y0, y1, y2
 
 def save_from_model(gen_sde,res, seed, args):
-    #for i in range(100):
-    with torch.no_grad():
-        sampled_images = get_grid(gen_sde, 1, res, args.input_height, args, transform=None)
-        final_image = sampled_images[0]
+    for i in range(100):
+        with torch.no_grad():
+            sampled_images = get_grid(gen_sde, 1, res, args.input_height, args, transform=None)
+            final_image = sampled_images[0]
 
+        for j in range(final_images.shape[0]):
+            sample_image = torch.clamp(final_images[j],0.,1.)
+            arr = sample_image.cpu().data.numpy()*255
+            arr = arr.astype(np.uint8).squeeze(0)
 
-    for j in range(final_images.shape[0]):
-        sample_image = torch.clamp(final_images[j],0.,1.)
-        arr = sample_image.cpu().data.numpy()*255
-        arr = arr.astype(np.uint8).squeeze(0)
-
-        im = Image.fromarray(arr)
-        im.save("samples_"+str(res)+"seed"+str(seed)+"/{}.jpeg".format(j)) #archetype+#i*100+
+            im = Image.fromarray(arr)
+            im.save("samples_"+str(res)+"seed"+str(seed)+"/{}.jpeg".format(i*100+j)) 
 
 
         
@@ -85,7 +85,7 @@ def training(seed, args):
         for k,(x,y) in enumerate(trainloader):
             x = x.to(device) 
             x = x - torch.mean(x, dim = 0)
-            loss = gen_sde.dsm(pool(x)).mean() #sampling?
+            loss = gen_sde.dsm(pool(x)).mean() 
             optim.zero_grad()
             loss.backward()
             optim.step()
@@ -103,22 +103,23 @@ def training(seed, args):
     for i in range(3):
         for img, ax in zip(grid[i],axs):
             ax.imshow(img.squeeze(0).cpu().data.numpy(), vmin = 0., vmax = 1., cmap = 'gray')
-        plt.savefig('period'+str(i)+str(args.input_height)+'samplegrid'+str(seed)) 
-        #plt.figure()
+        plt.savefig(args.model+str(args.prior)[8:11]+'period'+str(i)+str(args.input_height)+'samplegrid'+str(seed)) 
+        plt.figure()
 
-    grid = get_grid(gen_sde, 1, args.input_height*2, args, transform=None) #output height?
-    fig, axs = plt.subplots(4,4, figsize = (12,12))
-    axs = axs.flatten()
+    if args.model=='fno':
+        grid = get_grid(gen_sde, 1, args.input_height*2, args, transform=None) 
+        fig, axs = plt.subplots(4,4, figsize = (12,12))
+        axs = axs.flatten()
 
-    for i in range(3):
-        for img, ax in zip(grid[i],axs):
-            ax.imshow(img.squeeze(0).cpu().data.numpy(), vmin = 0., vmax = 1., cmap = 'gray')
-        plt.savefig('sample32_grid'+str(seed)) 
-        #plt.figure()
+        for i in range(3):
+            for img, ax in zip(grid[i],axs):
+                ax.imshow(img.squeeze(0).cpu().data.numpy(), vmin = 0., vmax = 1., cmap = 'gray')
+            plt.savefig(args.model+str(args.prior)[8:11]+'period'+str(i)+'sample32_grid'+str(seed)) 
+            plt.figure()
             
     if args.save:
         save_from_model(gen_sde, args.input_height, seed, args.prior)
-        save_from_model(gen_sde, args.input_height*2, seed, args.prior)
+        #save_from_model(gen_sde, args.input_height*2, seed, args.prior)
 
     return gen_sde
 
@@ -144,6 +145,8 @@ if __name__ == '__main__':
     parser.add_argument('--num_steps', type=int, default=200, help='number of SDE timesteps')
     parser.add_argument('--input_height', type=int, default=16,  help='starting image dimensions')
     parser.add_argument('--prior', type=choose_prior, required=True, help="prior setup")
+    
+    parser.add_argument('--model', type=str, required=True,help='nn model') 
 
     parser.add_argument('--modes', type=int, default=8, help='cutoff modes in FNO')
 
