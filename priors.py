@@ -28,15 +28,15 @@ class StandardNormal():
         return g*a 
 
 class FNOprior():
-    # def __init__(self, shape_vec):
-    #     self.shape_vec = shape_vec
+     def __init__(self):
+         self.conv = SpectralConv2d(1,1,16,9, rand = False).to(device)
 
     def sample(self,shape_vec):
         x = torch.randn(shape_vec[0],1,shape_vec[2],shape_vec[3]).to(device)
         return self.Qmv(x)
 
     def Qmv(self,v):
-        return SpectralConv2d(1,1,16,9, rand = False).to(device)(v)
+        return self.conv(v)
 
     def Q_g2_s(self, g,a): 
         return g*a #Qmv(g*a) 
