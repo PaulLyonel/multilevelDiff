@@ -7,10 +7,13 @@ from fno import *
 
 
 
-class StandardNormal():
+class StandardNormal(nn.Module):
 
-    # def __init__(self, shape_vec):
-    #     self.shape_vec = shape_vec
+    def __init__(self):
+        super(StandardNormal, self).__init__()
+
+    def __repr__(self):
+        return "StandardNormal"
 
     #standard noise
     def sample(self,shape_vec):
@@ -27,10 +30,15 @@ class StandardNormal():
     def Q_g2_s(self, g,a): 
         return g*a 
 
-class FNOprior():
-    def __init__(self):
-        self.conv = SpectralConv2d(1,1,16,9, rand = False).to(device)
+class FNOprior(nn.Module):
+    def __init__(self,k1=16,k2=9):
+        super(FNOprior, self).__init__()
+        self.k1 = k1
+        self.k2 = k2
+        self.conv = SpectralConv2d(1,1,k1,k2, rand = False).to(device)
 
+    def __repr__(self):
+        return "FNOprior(k1=%d, k2=%d)" %(self.k1,self.k2)
     def sample(self,shape_vec):
         x = torch.randn(shape_vec[0],1,shape_vec[2],shape_vec[3]).to(device)
         return self.Qmv(x)
@@ -42,11 +50,22 @@ class FNOprior():
         return g*a #Qmv(g*a) 
 
 
-class ImplicitConv():
-    # N(0,Q), Q is a separable convolution with periodic boundary condition
+class ImplicitConv(nn.Module):
+    """
+    Compute the covariance matrix as
 
-    # def __init__(self, shape_vec):
-    #     self.shape_vec = shape_vec
+    Q = conv(K)^{-1/2}
+
+    where K is a separable stencil, e.g., the standard 5-point Laplacian.
+    """
+
+    def __init__(self,K=None):
+        super(ImplicitConv, self).__init__()
+        # tbd: check if K is separable
+        self.K = K
+
+    def __repr__(self):
+        return "ImplicitConv(k1=%d, k2=%d)" %(self.k1,self.k2)
 
     def sample(self,shape_vec):
         x = torch.randn(shape_vec[0],1,shape_vec[2],shape_vec[3]).to(device)
@@ -58,16 +77,16 @@ class ImplicitConv():
     def Q_g2_s(self, g,a): #method
         return g*a #self.Qmv(g*a) 
 
-    #Laplacian
-    def stencil(self, hx, hy):
-        K = torch.zeros(3,3)
-        K[1,1] = 2.0/(hx**2) + 2.0/(hy**2)
-        K[0,1] = -1.0/(hy**2)
-        K[1,0] = -1.0/(hx**2)
-        K[2,1] = -1.0/(hy**2)
-        K[1,2] = -1.0/(hx**2)
-
-        return K
+    # #Laplacian
+    # def stencil(self, hx, hy):
+    #     K = torch.zeros(3,3)
+    #     K[1,1] = 2.0/(hx**2) + 2.0/(hy**2)
+    #     K[0,1] = -1.0/(hy**2)
+    #     K[1,0] = -1.0/(hx**2)
+    #     K[2,1] = -1.0/(hy**2)
+    #     K[1,2] = -1.0/(hx**2)
+    #
+    #     return K
 
     def compConv(self,x,fun= lambda x : x):
         """
@@ -87,7 +106,7 @@ class ImplicitConv():
         ny = n[3]
         hx = 1.0/nx
         hy = 1.0/ny
-        K = self.stencil(hx, hy).to(device)
+        K = self.K
         m = K.shape
         mid1 = (m[0]-1)//2
         mid2 = (m[1]-1)//2
