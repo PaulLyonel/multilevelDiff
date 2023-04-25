@@ -8,8 +8,7 @@ import torchvision.transforms as transforms
 from PIL import Image
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
-# from pytorch_fid.fid_score import calculate_frechet_distance
-
+from unet import UNet
 from fno import *
 from sde import * 
 from priors import *
@@ -140,6 +139,7 @@ if __name__ == '__main__':
     parser.add_argument('--n_epochs', type=int, default=300, help='ADAM epoch')
     parser.add_argument('--lr', type=float,default=1e-4, help='ADAM learning rate')
     
+    parser.add_argument('--model_type', type=int,default="fno", help='FNO (0) or Unet (1)')
     parser.add_argument('--num_samples', type=int, default=16, help='number of samples drawing from the prior')
     parser.add_argument('--num_steps', type=int, default=200, help='number of SDE timesteps')
     parser.add_argument('--input_height', type=int, default=16,  help='starting image dimensions')
@@ -150,8 +150,18 @@ if __name__ == '__main__':
     parser.add_argument('--save', type=bool, default=False,help='save from model') 
     args = parser.parse_args()
 
+    if args.model_type == 0:
     
-    model = FNO2d(args.modes,args.modes,64).to(device) #add u-net too
+        model = FNO2d(args.modes,args.modes,64).to(device) #add u-net too
+    else:
+        model = UNet(
+        input_channels=1,
+        input_height=args.input_height,
+        ch=32,
+        ch_mult=(1, 2, 2),
+        num_res_blocks=2,
+        attn_resolutions=(256,),
+        resamp_with_conv=True,).to(device)
     # starting dimensions
     input_channels = 1
     dimx = input_channels * args.input_height ** 2
