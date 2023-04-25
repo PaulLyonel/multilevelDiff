@@ -28,8 +28,8 @@ class StandardNormal():
         return g*a 
 
 class FNOprior():
-     def __init__(self):
-         self.conv = SpectralConv2d(1,1,16,9, rand = False).to(device)
+    def __init__(self):
+        self.conv = SpectralConv2d(1,1,16,9, rand = False).to(device)
 
     def sample(self,shape_vec):
         x = torch.randn(shape_vec[0],1,shape_vec[2],shape_vec[3]).to(device)
