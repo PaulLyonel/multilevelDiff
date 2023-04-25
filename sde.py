@@ -6,8 +6,6 @@ from fno import *
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # huang sde code
-prior = FNOprior()  #ImplicitConv
-model = FNO2d(8,8,64).to(device)
 
 class VariancePreservingSDE(torch.nn.Module):
     """
@@ -45,8 +43,7 @@ class VariancePreservingSDE(torch.nn.Module):
         """
         mu = self.mean_weight(t) * y0  #mean = tilde alpha * y0
         std_weight = self.var_weight(t) ** 0.5        
-        z = self.prior.sample(y0.shape)
-        eta = self.prior.Qmv(z)
+        eta = self.prior.sample(y0.shape) 
         yt = eta * std_weight + mu
         if not return_noise:
             return yt

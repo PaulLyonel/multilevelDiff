@@ -15,7 +15,7 @@ class StandardNormal():
     #standard noise
     def sample(self,shape_vec):
         x = torch.randn(shape_vec[0],1,shape_vec[2],shape_vec[3]).to(device)
-        return x
+        return self.Qmv(x)
 
     #covariance
     def Qmv(self,v):
@@ -33,7 +33,7 @@ class FNOprior():
 
     def sample(self,shape_vec):
         x = torch.randn(shape_vec[0],1,shape_vec[2],shape_vec[3]).to(device)
-        return x
+        return self.Qmv(x)
 
     def Qmv(self,v):
         return SpectralConv2d(1,1,16,9, rand = False).to(device)(v)
@@ -50,12 +50,12 @@ class ImplicitConv():
 
     def sample(self,shape_vec):
         x = torch.randn(shape_vec[0],1,shape_vec[2],shape_vec[3]).to(device)
-        return x
+        return self.Qmv(x)
 
     def Qmv(self,v):
         return self.compConv(v, fun = lambda x: (1/torch.sqrt(x)))[0]
 
-    def Q_g2_s(self, g,a): 
+    def Q_g2_s(self, g,a): #method
         return g*a #self.Qmv(g*a) 
 
     #Laplacian
