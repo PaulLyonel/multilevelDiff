@@ -72,7 +72,7 @@ class PluginReverseSDE(torch.nn.Module):
     # Drift
     def mu(self, t, y, lmbd=0.):
         a = self.a(y, self.T - t.squeeze())
-        return (1. - 0.5 * lmbd) * prior.Q_g2_s(self.base_sde.g(self.T-t, y),a) - \
+        return (1. - 0.5 * lmbd) * self.prior.Q_g2_s(self.base_sde.g(self.T-t, y),a) - \
                self.base_sde.f(self.T - t, y)
 
     # Diffusion
