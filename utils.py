@@ -1,8 +1,40 @@
 import torch
-import Image
+import os
+from PIL import Image
+import logging
+
+def makedirs(dirname):
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
 
 
-def get_samples(sde, input_channels, input_height, num_steps, num_samples, store_itermediates=False):
+def get_logger(logpath, filepath, package_files=[], displaying=True, saving=True, debug=False):
+    logger = logging.getLogger()
+    if debug:
+        level = logging.DEBUG
+    else:
+        level = logging.INFO
+    logger.setLevel(level)
+    if saving:
+        info_file_handler = logging.FileHandler(logpath, mode="a")
+        info_file_handler.setLevel(level)
+        logger.addHandler(info_file_handler)
+    if displaying:
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(level)
+        logger.addHandler(console_handler)
+    logger.info(filepath)
+    with open(filepath, "r") as f:
+        logger.info(f.read())
+
+    for f in package_files:
+        logger.info(f)
+        with open(f, "r") as package_f:
+            logger.info(package_f.read())
+
+    return logger
+
+def get_samples(sde, input_channels, input_height, num_steps, num_samples, store_itermediates=True):
     """
 
     generates samples from the reverse SDE
@@ -65,8 +97,8 @@ def epsTest(X, Y, eps=1e-1):
     X = X.view(nx, -1)
     Y = Y.view(ny, -1)
 
-    sX = torch.norm(X, dim=1) ** 2;
-    sY = torch.norm(Y, dim=1) ** 2;
+    sX = torch.norm(X, dim=1) ** 2
+    sY = torch.norm(Y, dim=1) ** 2
 
     CXX = sX.unsqueeze(1) + sX.unsqueeze(0) - 2 * X @ X.t()
     CXX = torch.sqrt(CXX + eps)
