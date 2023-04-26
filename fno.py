@@ -5,7 +5,8 @@ import numpy as np
 
 
 
-device = 'cuda'
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 class SpectralConv2d(nn.Module):
     def __init__(self, in_channels, out_channels, modes1, modes2, rand = True):
         super(SpectralConv2d, self).__init__()

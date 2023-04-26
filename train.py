@@ -13,7 +13,7 @@ from fno import *
 from unet import *
 from sde import * 
 from priors import *
-from utils import get_samples, save_samples, epsTest
+from utils import get_samples, save_samples, epsTest, makedirs, get_logger
 import os
 import datetime
 
@@ -50,6 +50,12 @@ def training(seed, model, args,out_file=None):
     rev_sde = PluginReverseSDE(args.prior, fwd_sde, model, T, vtype='Rademacher', debias=False).to(device)
     optim = torch.optim.Adam(rev_sde.parameters(), lr=args.lr)
 
+    logger.info("-------------------------")
+    logger.info(str(optim)) # optimizer info
+    #loss
+    #eval
+    logger.info("-------------------------\n")
+
     rev_sde.train()
     for ep in range(args.n_epochs):
         avg_loss = 0.0
@@ -65,15 +71,24 @@ def training(seed, model, args,out_file=None):
 
 
         if ep % args.print_freq:
-            y0 = get_samples(rev_sde, 1, args.input_height, args.num_steps, args.batch_size)
+            y0 = get_samples(rev_sde, 1, args.input_height, args.num_steps, args.batch_size)[0]
             eps = epsTest(y0.detach(), x)
             print('EPOCH:%d\t loss:%1.2e \t eps:%1.2e' % (ep, avg_loss, eps))
 
         if ep % args.viz_freq:
-            y0 = get_samples(rev_sde, 1, args.input_height, args.num_steps, args.num_samples)
-
+            y0 = get_samples(rev_sde, 1, args.input_height, args.num_steps, args.num_samples)[0]
+            print('y0----')
+            print(y0.shape)
             plt.figure()
-            plt.imshow(torchvision.utils.make_grid(y0, 8, 5).permute((1, 2, 0)))
+            #y0_stacked = torch.stack(y0)
+
+            # Add a channel dimension (1 channel for grayscale images)
+            #y0_stacked = y0_stacked.unsqueeze(1)
+            #print('y0_stacked----')
+            #print(y0_stacked.shape)
+            image_grid = torchvision.utils.make_grid(y0, nrow=8, padding=5).permute((1, 2, 0))
+
+            plt.imshow(image_grid.cpu().numpy(), cmap='gray') #for 3d: 
             plt.title("train MNIST: epoch=%d" % (ep + 1))
             if args.out_file is not None:
                 plt.savefig(("%s-epoch-%d.png") % (out_file, ep + 1))
@@ -116,6 +131,8 @@ if __name__ == '__main__':
 
     parser.add_argument('--save', type=bool, default=False,help='save from model') 
     args = parser.parse_args()
+    
+
 
     if args.model == "fno":
         model = FNO2d(args.modes,args.modes,64).to(device) #add u-net too
@@ -128,18 +145,27 @@ if __name__ == '__main__':
         num_res_blocks=2,
         attn_resolutions=(256,),
         resamp_with_conv=True,).to(device)
-    # starting dimensions
+
     input_channels = 1
-    dimx = input_channels * args.input_height ** 2
 
     # first run
     start_time = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+    
+    makedirs(args.out_dir)
+    logger = get_logger(logpath=os.path.join(args.out_dir, 'logs'), filepath=os.path.abspath(__file__))
+    logger.info("start time: " + start_time)
+    logger.info(args)
+
+
     if args.out_file is not None:
-        out_file = os.path.join(args.dir, '{:}-{:}_model_{:}_prior_{:}'.format(start_time,args.out_file,args.model,args.prior))
+        out_file = os.path.join(args.out_dir, '{:}-{:}_model_{:}_prior_{:}'.format(start_time,args.out_file,args.model,args.prior))
     else:
         out_file=None
 
-    rev_sde = training(args.seed, args,out_file=out_file)
+    rev_sde = training(args.seed, model, args,out_file=out_file)
+    
+
+
     if args.out_file is not None:
         # double check that model gets saves
         torch.save({
