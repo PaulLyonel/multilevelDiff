@@ -58,22 +58,16 @@ class ImplicitConv(nn.Module):
 
     Q = conv(K)^{-1/2}
 
-    where K is a separable stencil, e.g., the standard 5-point Laplacian.
+    where K is a  stencil, e.g., the standard 5-point Laplacian.
     """
 
     def __init__(self,K=None):
         super(ImplicitConv, self).__init__()
         # tbd: check if K is separable
         self.K = K
-        self.is_sep = self.sep(K)
 
     def __repr__(self):
         return "ImplicitConv(k1=%d, k2=%d)" %(self.k1,self.k2)
-
-    def sep(self, K):
-        U, S, V = svd(K)
-        is_sep = np.count_nonzeros(S) == 1
-        return is_sep
 
     def sample(self,shape_vec):
         x = torch.randn(shape_vec[0],1,shape_vec[2],shape_vec[3]).to(device)
@@ -85,35 +79,19 @@ class ImplicitConv(nn.Module):
     def Q_g2_s(self, g,a): #method
         return g*a #self.Qmv(g*a) 
 
-    # #Laplacian
-    # def stencil(self, hx, hy):
-    #     K = torch.zeros(3,3)
-    #     K[1,1] = 2.0/(hx**2) + 2.0/(hy**2)
-    #     K[0,1] = -1.0/(hy**2)
-    #     K[1,0] = -1.0/(hx**2)
-    #     K[2,1] = -1.0/(hy**2)
-    #     K[1,2] = -1.0/(hx**2)
-    #
-    #     return K
+
 
     def compConv(self,x,fun= lambda x : x):
         """
         compute fun(conv_op(K))*x assuming periodic boundary conditions on x
 
         where
-        K       - is a 2D convolution stencil (assumed to be separable)
-        conv_op - means that we build the matrix representation of the operator
+        x       - are images, torch.tensor, shape=N x 1 x nx x ny
         fun     - is a function applied to the operator (as a matrix-function, not
     component-wise), default fun(x)=x
-        x       - are images, torch.tensor, shape=N x 1 x nx x ny
         """
 
         n = x.shape
-        #stencil
-        nx = n[2]
-        ny = n[3]
-        hx = 1.0/nx
-        hy = 1.0/ny
         K = self.K
         m = K.shape
         mid1 = (m[0]-1)//2
@@ -130,10 +108,26 @@ class ImplicitConv(nn.Module):
         lam[torch.isinf(lam)] = 0.0
         xBh = xh * lam.unsqueeze(0).unsqueeze(0)
         xB = torch.fft.irfft2(xBh)
-        xB = 9*xB
-
         return xB,lam
 
+
+
+if __name__ == '__main__':
+    K = torch.zeros(3,3)
+    K[1,1] = 4.0
+    K[0, 1] = -1
+    K[1, 0] = -1
+    K[2, ] = -1
+
+    x = torch.randn(10,1,16,32)
+
+    y = torch.nn.functional.conv2d(x,K.unsqueeze(0).unsqueeze(0),padding=1)
+
+    convOp = ImplicitConv(K)
+    yt = convOp.compConv(x)[0]
+
+    rel_err = torch.norm((y-yt)[:,:,1:-2,1:-2])/torch.norm(y[:,:,1:-2,1:-2])
+    print(rel_err)
 
 
 

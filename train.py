@@ -29,7 +29,7 @@ def training(seed, model, args,out_file=None):
     :return:
     """
 
-    print("seed=%d" % seed)
+    logger.info("seed=%d" % seed)
     torch.manual_seed(seed)
     np.random.seed(seed)
 
@@ -42,8 +42,8 @@ def training(seed, model, args,out_file=None):
 
     T = torch.nn.Parameter(torch.FloatTensor([1.]), requires_grad=False)
 
-    print('NUMBER OF PARAMETERS:')
-    print(sum(p.numel() for p in model.parameters()))
+    logger.info('NUMBER OF PARAMETERS:')
+    logger.info(sum(p.numel() for p in model.parameters()))
     pool = torch.nn.AvgPool2d(2)
 
     fwd_sde = VariancePreservingSDE(args.prior, alpha_min=0.1, alpha_max=20.0, T=T )
@@ -52,9 +52,10 @@ def training(seed, model, args,out_file=None):
 
     logger.info("-------------------------")
     logger.info(str(optim)) # optimizer info
-    #loss
-    #eval
     logger.info("-------------------------\n")
+
+    history = []
+
 
     rev_sde.train()
     for ep in range(args.n_epochs):
@@ -70,31 +71,24 @@ def training(seed, model, args,out_file=None):
         avg_loss /= len(trainset)
 
 
-        if ep % args.print_freq:
+        if (ep+1) % args.print_freq:
             y0 = get_samples(rev_sde, 1, args.input_height, args.num_steps, args.batch_size)[0]
-            eps = epsTest(y0.detach(), x)
-            print('EPOCH:%d\t loss:%1.2e \t eps:%1.2e' % (ep, avg_loss, eps))
+            eps = epsTest(y0.detach(), pool(x))
+            history.append([ep,avg_loss,eps.item()])
+            logger.info('epoch:%05d\t loss:%1.2e \t eps:%1.2e' % (ep, avg_loss, eps))
 
-        if ep % args.viz_freq:
+        if (ep+1) % args.viz_freq:
             y0 = get_samples(rev_sde, 1, args.input_height, args.num_steps, args.num_samples)[0]
-            print('y0----')
-            print(y0.shape)
             plt.figure()
-            #y0_stacked = torch.stack(y0)
-
-            # Add a channel dimension (1 channel for grayscale images)
-            #y0_stacked = y0_stacked.unsqueeze(1)
-            #print('y0_stacked----')
-            #print(y0_stacked.shape)
             image_grid = torchvision.utils.make_grid(y0, nrow=8, padding=5).permute((1, 2, 0))
 
             plt.imshow(image_grid.cpu().numpy(), cmap='gray') #for 3d: 
             plt.title("train MNIST: epoch=%d" % (ep + 1))
-            if args.out_file is not None:
+            if out_file is not None:
                 plt.savefig(("%s-epoch-%d.png") % (out_file, ep + 1))
             plt.show()
 
-    return rev_sde
+    return rev_sde, history
 
 def choose_prior(string):
     if string.lower() == "fno":
@@ -102,7 +96,16 @@ def choose_prior(string):
     elif string.lower() == "standard":
         return StandardNormal()
     elif string.lower() == "lap_conv":
-        return ImplicitConv()
+        K = torch.zeros(3,3)
+        hx = 1.0/args.input_height
+        hy = 1.0/args.input_height
+        K[1,1] = 2.0/(hx**2) + 2.0/(hy**2)
+        K[0,1] = -1.0/(hy**2)
+        K[1,0] = -1.0/(hx**2)
+        K[2,1] = -1.0/(hy**2)
+        K[1,2] = -1.0/(hx**2)
+
+        return ImplicitConv(K)
     else:
         raise argparse.ArgumentTypeError(f"Invalid class")
 
@@ -118,16 +121,16 @@ if __name__ == '__main__':
 
     parser.add_argument('--num_steps', type=int, default=200, help='number of SDE timesteps')
     parser.add_argument('--input_height', type=int, default=16,  help='starting image dimensions')
-    parser.add_argument('--prior', type=choose_prior, required=True, help="prior setup")
+    parser.add_argument('--prior', type=choose_prior, default='fno', help="prior setup")
     
-    parser.add_argument('--model', type=str, required=True,help='nn model')
+    parser.add_argument('--model', type=str, default='fno',help='nn model')
     parser.add_argument('--modes', type=int, default=8, help='cutoff modes in FNO')
-    parser.add_argument('--viz_freq', type=int, default=10, help='how often to store generated images')
+    parser.add_argument('--viz_freq', type=int, default=1, help='how often to store generated images')
     parser.add_argument('--print_freq', type=int, default=1, help='how often to print loss')
     parser.add_argument('--seed', type=int, default=1, help='seed for random number generator')
 
-    parser.add_argument('--out_dir', type=str, default=None, help='directory for result')
-    parser.add_argument('--out_file', type=str, default=None, help='base file name for result')
+    parser.add_argument('--out_dir', type=str, default='test', help='directory for result')
+    parser.add_argument('--out_file', type=str, default='test', help='base file name for result')
 
     parser.add_argument('--save', type=bool, default=False,help='save from model') 
     args = parser.parse_args()
@@ -148,28 +151,30 @@ if __name__ == '__main__':
 
     input_channels = 1
 
-    # first run
     start_time = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-    
-    makedirs(args.out_dir)
-    logger = get_logger(logpath=os.path.join(args.out_dir, 'logs'), filepath=os.path.abspath(__file__))
-    logger.info("start time: " + start_time)
-    logger.info(args)
-
-
     if args.out_file is not None:
         out_file = os.path.join(args.out_dir, '{:}-{:}_model_{:}_prior_{:}'.format(start_time,args.out_file,args.model,args.prior))
     else:
         out_file=None
 
-    rev_sde = training(args.seed, model, args,out_file=out_file)
+
+    
+    makedirs(args.out_dir)
+    logger = get_logger(logpath= out_file + '.txt', filepath=os.path.abspath(__file__))
+    logger.info("start time: " + start_time)
+    logger.info(args)
+
+
+
+    rev_sde, history = training(args.seed, model, args,out_file=out_file)
     
 
 
-    if args.out_file is not None:
+    if out_file is not None:
         # double check that model gets saves
         torch.save({
             'args': args,
+            'history': history,
             'rev_sde_state_dict': rev_sde.state_dict(),
             'prior_state_dict': rev_sde.prior.state_dict(),
         }, '{:}_checkpt.pth'.format(out_file))
