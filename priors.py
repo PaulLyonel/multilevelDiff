@@ -3,7 +3,9 @@ import torch
 import torch.nn as nn
 import torch.distributions as td
 import numpy as np
+from numpy.linalg import svd
 from fno import *
+
 
 
 
@@ -63,9 +65,15 @@ class ImplicitConv(nn.Module):
         super(ImplicitConv, self).__init__()
         # tbd: check if K is separable
         self.K = K
+        self.is_sep = self.sep(K)
 
     def __repr__(self):
         return "ImplicitConv(k1=%d, k2=%d)" %(self.k1,self.k2)
+
+    def sep(self, K):
+        U, S, V = svd(K)
+        is_sep = np.count_nonzeros(S) == 1
+        return is_sep
 
     def sample(self,shape_vec):
         x = torch.randn(shape_vec[0],1,shape_vec[2],shape_vec[3]).to(device)
