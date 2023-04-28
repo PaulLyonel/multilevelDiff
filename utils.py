@@ -2,6 +2,7 @@ import torch
 import os
 from PIL import Image
 import logging
+import numpy as np
 
 def makedirs(dirname):
     if not os.path.exists(dirname):
@@ -64,7 +65,7 @@ def get_samples(sde, input_channels, input_height, num_steps, num_samples, store
                 Y.append(y0)
     return y0, Y
 
-def save_samples(y0, file_name):
+def save_samples(y0, i,folder):
     """
 
     save samples as individual jpg images
@@ -73,13 +74,17 @@ def save_samples(y0, file_name):
     :param file_name: base file name (without the exension)
     :return:
     """
+    makedirs(str(folder))
+
     for j in range(y0.shape[0]):
         y0j = torch.clamp(y0[j], 0., 1.)
         arr = y0j.cpu().data.numpy() * 255
         arr = arr.astype(np.uint8).squeeze(0)
 
         im = Image.fromarray(arr)
-        im.save('%s-j-%d.jpg' % (file_name, j))
+        
+        print(str(folder+str(i*100+j)+'.jpeg'))
+        im.save(str(folder+str(i*100+j)+'.jpeg'))
 
 def epsTest(X, Y, eps=1e-1):
     """

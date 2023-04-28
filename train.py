@@ -55,6 +55,8 @@ def training(seed, model, args,out_file=None):
     logger.info("-------------------------\n")
 
     history = []
+    loss_list = []
+    eps_list = []
 
 
     rev_sde.train()
@@ -71,24 +73,56 @@ def training(seed, model, args,out_file=None):
         avg_loss /= len(trainset)
 
 
-        if (ep+1) % args.print_freq:
+        if (ep+1) % args.print_freq ==0:
             y0 = get_samples(rev_sde, 1, args.input_height, args.num_steps, args.batch_size)[0]
             eps = epsTest(y0.detach(), pool(x))
+            eps_list.append(eps.item())
             history.append([ep,avg_loss,eps.item()])
+            loss_list.append(avg_loss)
             logger.info('epoch:%05d\t loss:%1.2e \t eps:%1.2e' % (ep, avg_loss, eps))
 
-        if (ep+1) % args.viz_freq:
+        if (ep+1) % args.viz_freq==0:
             y0 = get_samples(rev_sde, 1, args.input_height, args.num_steps, args.num_samples)[0]
             plt.figure()
             image_grid = torchvision.utils.make_grid(y0, nrow=8, padding=5).permute((1, 2, 0))
 
-            plt.imshow(image_grid.cpu().numpy(), cmap='gray') #for 3d: 
+            plt.imshow(image_grid.cpu().numpy(), cmap='gray') 
             plt.title("train MNIST: epoch=%d" % (ep + 1))
             if out_file is not None:
                 plt.savefig(("%s-epoch-%d.png") % (out_file, ep + 1))
-            plt.show()
+            #plt.show()
 
-    return rev_sde, history
+    return rev_sde, history, loss_list,eps_list
+
+
+def eval_model(rev_sde,loss_list,eps_list,args):
+    # plot loss curves
+    plt.figure()
+    plt.plot(loss_list) 
+    plt.title("training loss over epochs")
+    if args.out_dir is not None:
+        plt.savefig((args.out_dir+"loss.png"))
+    else:
+        plt.savefig(("loss.png"))
+
+    # plot eps loss
+    plt.figure()
+    plt.plot(eps_list) 
+    plt.title("eps metric over epochs")
+    if args.out_dir is not None:
+        plt.savefig((args.out_dir+"eps.png"))
+    else:
+        plt.savefig(("eps.png"))
+
+    # save samples in folder
+
+    for i in range(100):
+        y0 =  get_samples(rev_sde, 1, args.input_height, args.num_steps, 100, store_itermediates=True)[0]
+        save_samples(y0, i, str(args.model)+str(args.input_height)+str(args.prior_name)+'/')
+
+    
+
+    return 
 
 def choose_prior(string):
     if string.lower() == "fno":
@@ -121,7 +155,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--num_steps', type=int, default=200, help='number of SDE timesteps')
     parser.add_argument('--input_height', type=int, default=16,  help='starting image dimensions')
-    parser.add_argument('--prior', type=choose_prior, default='fno', help="prior setup")
+    parser.add_argument('--prior_name', type=str, default='fno', help="prior setup")
     
     parser.add_argument('--model', type=str, default='fno',help='nn model')
     parser.add_argument('--modes', type=int, default=8, help='cutoff modes in FNO')
@@ -132,11 +166,12 @@ if __name__ == '__main__':
     parser.add_argument('--out_dir', type=str, default='test', help='directory for result')
     parser.add_argument('--out_file', type=str, default='test', help='base file name for result')
 
-    parser.add_argument('--save', type=bool, default=False,help='save from model') 
+    parser.add_argument('--save', type=bool, default=False,help='save from model')
+
     args = parser.parse_args()
+
     
-
-
+    args.prior = choose_prior(args.prior_name)
     if args.model == "fno":
         model = FNO2d(args.modes,args.modes,64).to(device) #add u-net too
     else:
@@ -162,13 +197,12 @@ if __name__ == '__main__':
     makedirs(args.out_dir)
     logger = get_logger(logpath= out_file + '.txt', filepath=os.path.abspath(__file__))
     logger.info("start time: " + start_time)
-    logger.info(args)
+    #logger.info(args)
 
 
 
-    rev_sde, history = training(args.seed, model, args,out_file=out_file)
-    
-
+    rev_sde, history,loss_list,eps_list = training(args.seed, model, args,out_file=out_file)
+    eval_model(rev_sde,loss_list, eps_list,args)
 
     if out_file is not None:
         # double check that model gets saves
