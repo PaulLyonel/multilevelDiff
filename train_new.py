@@ -38,17 +38,17 @@ def training(seed, model, args,out_file=None):
     trainset = torchvision.datasets.MNIST(root='', train=True,
                                       download=True, transform=transform)
 
+    train_set, val_set = torch.utils.data.random_split(trainset, [60000-args.num_samples_mmd, args.num_samples_mmd])
 
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size,
+    trainloader = torch.utils.data.DataLoader(train_set, batch_size=args.batch_size,
                                           shuffle=True, num_workers=0)
-    trainloader_full = torch.utils.data.DataLoader(trainset, batch_size=60000,
-                                          shuffle=True, num_workers=0)
-    valloader = torch.utils.data.DataLoader(trainset, batch_size=args.num_samples_mmd,
-                                          shuffle=True, num_workers=0)
-    val_samp = next(iter(trainloader_full))[0]
 
-    val_samp_pool = pool(val_samp).view(60000,args.input_height**2).to('cpu')
-    val_samp = val_samp.view(60000,(2*args.input_height)**2).to('cpu')
+    valloader = torch.utils.data.DataLoader(val_set, batch_size=args.num_samples_mmd,
+                                          shuffle=True, num_workers=0)
+    val_samp = next(iter(valloader))[0]
+
+    val_samp_pool = pool(val_samp).view(args.num_samples_mmd,args.input_height**2).to('cpu')
+    val_samp = val_samp.view(args.num_samples_mmd,(2*args.input_height)**2).to('cpu')
 
 
 
@@ -151,14 +151,14 @@ def eval_model(rev_sde,loss_list,mmd_list,args):
     plt.plot(loss_list) 
     plt.title("training loss over epochs")
 
-    plt.savefig((args.out_dir+"loss.png"))
+    plt.savefig((args.out_dir+"/loss.png"))
 
     # plot eps loss
     plt.figure()
     plt.plot(mmd_list) 
     plt.title("mmd metric over epochs")
 
-    plt.savefig((args.out_dir+"mmd.png"))
+    plt.savefig((args.out_dir+"/mmd.png"))
 
     # save samples in folder
 
@@ -201,7 +201,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Training arguments')
 
-    parser.add_argument('--n_epochs', type=int, default=21, help='ADAM epoch')
+    parser.add_argument('--n_epochs', type=int, default=501, help='ADAM epoch')
     parser.add_argument('--lr', type=float,default=1e-3, help='ADAM learning rate')
 
     parser.add_argument('--batch_size', type=int, default=256, help='number of training samples in each batch')
