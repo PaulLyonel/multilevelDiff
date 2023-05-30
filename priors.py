@@ -33,11 +33,11 @@ class StandardNormal(nn.Module):
         return g*a 
 
 class FNOprior(nn.Module):
-    def __init__(self,k1=16,k2=9):
+    def __init__(self,k1=28,k2=14):
         super(FNOprior, self).__init__()
         self.k1 = k1
         self.k2 = k2
-        #self.conv = SpectralConv2d(1,1,k1,k2, rand = False).to(device)
+        self.conv = SpectralConv2d(1,1,k1,k2, rand = False).to(device)
 
     def __repr__(self):
         return "FNOprior(k1=%d, k2=%d)" %(self.k1,self.k2)
@@ -46,7 +46,7 @@ class FNOprior(nn.Module):
         return self.Qmv(x)
 
     def Qmv(self,v):
-        return SpectralConv2d(1,1,self.k1,self.k2, rand = False).to(device)(v) #self.conv(v)
+        return self.conv(v)
 
     def Q_g2_s(self, g,a): 
         return g*a #Qmv(g*a) 
