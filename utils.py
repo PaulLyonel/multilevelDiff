@@ -65,6 +65,39 @@ def get_samples(sde, input_channels, input_height, num_steps, num_samples, store
                 Y.append(y0)
     return y0, Y
 
+def get_samples(sde, input_channels, input_height, num_steps, num_samples):
+    """
+
+    generates samples from the reverse SDE
+
+    :param sde: instance of SDE class
+    :param input_channels:
+    :param input_height: resolution of input images
+    :param num_steps: number time steps for sampling
+    :param num_samples: number of samples
+    :return:
+    """
+
+    delta = sde.T / num_steps
+   
+    samples = torch.empty(0, device = device)
+    for l in range(100):
+        y0 = sde.prior.sample([num_samples//100, input_channels, input_height, input_height])
+        ts = torch.linspace(0, 1, num_steps + 1).to(y0) * sde.T
+        ones = torch.ones(num_samples//100, 1, 1, 1).to(y0)
+
+        with torch.no_grad():
+            for i in range(num_steps):
+                mu = sde.mu(ones * ts[i], y0, lmbd = 0.)
+                sigma = sde.sigma(ones * ts[i], y0, lmbd = 0.)
+                epsilon = sde.prior.sample(y0.shape)
+                y0 = y0 + delta * mu + (delta ** 0.5) * sigma * epsilon
+
+        samples = torch.cat((samples, y0),0)
+
+    return samples
+
+
 def save_samples(y0, i,folder):
     """
 
