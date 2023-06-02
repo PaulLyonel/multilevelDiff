@@ -111,6 +111,62 @@ class ImplicitConv(nn.Module):
         return xB,lam
 
 
+class CombinedConv(nn.Module):
+    """
+    Compute the covariance matrix as
+
+    Q = conv(K)^{-1/2}
+
+    where K is a  stencil, e.g., the standard 5-point Laplacian.
+    """
+
+    def __init__(self,K=None,k1=28,k2=14):
+        super(CombinedConv, self).__init__()
+        # tbd: check if K is separable
+        self.K = K
+        self.conv = SpectralConv2d(1,1,k1,k2, rand = False).to(device)
+
+
+    def sample(self,shape_vec):
+        x = torch.randn(shape_vec[0],1,shape_vec[2],shape_vec[3]).to(device)
+        return self.Qmv(x)
+
+    def Qmv(self,v):
+        return self.conv(v)+self.compConv(v, fun = lambda x: (1/torch.sqrt(x)))[0]
+
+    def Q_g2_s(self, g,a): #method
+        return g*a #self.Qmv(g*a) 
+
+
+
+    def compConv(self,x,fun= lambda x : x):
+        """
+        compute fun(conv_op(K))*x assuming periodic boundary conditions on x
+
+        where
+        x       - are images, torch.tensor, shape=N x 1 x nx x ny
+        fun     - is a function applied to the operator (as a matrix-function, not
+    component-wise), default fun(x)=x
+        """
+
+        n = x.shape
+        K = self.K
+        m = K.shape
+        mid1 = (m[0]-1)//2
+        mid2 = (m[1]-1)//2
+        Bp = torch.zeros(n[2],n[3], device = device)
+        Bp[0:mid1+1,0:mid2+1] = K[mid1:,mid2:]
+        Bp[-mid1:, 0:mid2 + 1] = K[0:mid1, -(mid2 + 1):]
+        Bp[0:mid1 + 1, -mid2:] = K[-(mid1 + 1):, 0:mid2]
+        Bp[-mid1:, -mid2:] = K[0:mid1, 0:mid2]
+        xh = torch.fft.rfft2(x)
+        Bh = torch.fft.rfft2(Bp)
+        lam = fun(torch.abs(Bh)).to(device)
+        xh = xh.to(device)
+        lam[torch.isinf(lam)] = 0.0
+        xBh = xh * lam.unsqueeze(0).unsqueeze(0)
+        xB = 10*torch.fft.irfft2(xBh)
+        return xB,lam
 
 if __name__ == '__main__':
     K = torch.zeros(3,3)
