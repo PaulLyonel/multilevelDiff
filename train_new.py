@@ -194,6 +194,17 @@ def choose_prior(string):
         K[1,2] = -1.0/(hx**2)
 
         return ImplicitConv(K)
+    elif string.lower() == "combined_conv":
+        K = torch.zeros(3,3)
+        hx = 1.0/args.input_height
+        hy = 1.0/args.input_height
+        K[1,1] = 2.0/(hx**2) + 2.0/(hy**2)
+        K[0,1] = -1.0/(hy**2)
+        K[1,0] = -1.0/(hx**2)
+        K[2,1] = -1.0/(hy**2)
+        K[1,2] = -1.0/(hx**2)
+
+        return CombinedConv(K)
     else:
         raise argparse.ArgumentTypeError(f"Invalid class")
 
