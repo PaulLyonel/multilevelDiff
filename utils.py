@@ -3,6 +3,8 @@ import os
 from PIL import Image
 import logging
 import numpy as np
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 
 def makedirs(dirname):
     if not os.path.exists(dirname):
@@ -65,7 +67,7 @@ def get_samples(sde, input_channels, input_height, num_steps, num_samples, store
                 Y.append(y0)
     return y0, Y
 
-def get_samples(sde, input_channels, input_height, num_steps, num_samples):
+def get_samples_batched(sde, input_channels, input_height, num_steps, num_samples):
     """
 
     generates samples from the reverse SDE

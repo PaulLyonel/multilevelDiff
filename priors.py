@@ -67,7 +67,9 @@ class ImplicitConv(nn.Module):
         self.K = K
 
     def __repr__(self):
-        return "ImplicitConv(k1=%d, k2=%d)" %(self.k1,self.k2)
+        Knum = self.K.numpy()
+        Kstr = ';'.join(','.join(map(lambda x: str(int(x)), row)) for row in Knum)
+        return "ImplicitConv(K=%s)" %(Kstr)
 
     def sample(self,shape_vec):
         x = torch.randn(shape_vec[0],1,shape_vec[2],shape_vec[3]).to(device)
