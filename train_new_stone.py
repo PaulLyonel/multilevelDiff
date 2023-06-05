@@ -17,6 +17,7 @@ from priors import *
 from utils import get_samples, makedirs, get_logger, get_samples_batched
 import os
 import datetime
+import utils_patch
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -34,21 +35,22 @@ def training(seed, model, args,out_file=None):
     np.random.seed(seed)
     pool = torch.nn.AvgPool2d(2)
 
-    transform = transforms.Compose([transforms.ToTensor(), transforms.Resize(2*args.input_height)])
-    trainset = torchvision.datasets.MNIST(root='', train=True,
-                                      download=True, transform=transform)
+    im2patch = utils_patch.patch_extractor(patch_size=2*args.input_height)
+    example_img = utils_patch.imread('stone_imgs/img_learn_material.png').to("cpu")
+    test_img = utils_patch.imread('stone_imgs/img_test_material.png').to("cpu")
+    val_patches = im2patch(test_img[0].unsqueeze(0),20000).to(device).reshape(20000,1,2*args.input_height,2*args.input_height)
+    val_samp = val_patches[:10000].to('cpu')
+    test_samp = val_patches[10000:].to('cpu')
+    val_samp_pool = pool(val_samp).to('cpu')
+    test_samp_pool = pool(test_samp).to('cpu')
 
-    train_set, val_set = torch.utils.data.random_split(trainset, [60000-args.num_samples_mmd, args.num_samples_mmd])
+    val_samp = val_samp.view(10000,(2*args.input_height)**2)
+    test_samp = test_samp.view(10000,(2*args.input_height)**2)
 
-    trainloader = torch.utils.data.DataLoader(train_set, batch_size=args.batch_size,
-                                          shuffle=True, num_workers=0)
 
-    valloader = torch.utils.data.DataLoader(val_set, batch_size=args.num_samples_mmd,
-                                          shuffle=True, num_workers=0)
-    val_samp = next(iter(valloader))[0]
+    val_samp_pool = val_samp_pool.view(10000,(args.input_height)**2)
+    test_samp_pool = test_samp_pool.view(10000,(args.input_height)**2)
 
-    val_samp_pool = pool(val_samp).view(args.num_samples_mmd,args.input_height**2).to('cpu')
-    val_samp = val_samp.view(args.num_samples_mmd,(2*args.input_height)**2).to('cpu')
 
 
 
@@ -75,15 +77,17 @@ def training(seed, model, args,out_file=None):
     rev_sde.train()
     for ep in range(args.n_epochs):
         avg_loss = 0.0
-        for k,(x,y) in enumerate(trainloader):
-            x = x.to(device) 
-            loss = rev_sde.dsm(pool(x)).mean()
+        for k in range(args.steps_per_epoch):
+            with torch.no_grad():
+                x = im2patch(example_img[0].unsqueeze(0),args.batch_size).to(device).view(args.batch_size,1,2*args.input_height,2*args.input_height)
+            loss = rev_sde.dsm(pool(x)).mean() + rev_sde.dsm(x).mean()
             optim.zero_grad()
             loss.backward()
             optim.step()
             avg_loss += loss.item()*x.shape[0]
+            
 
-        avg_loss /= len(trainset)
+        avg_loss /= args.steps_per_epoch
 
 
         if ep % args.val_freq ==0:
@@ -112,7 +116,7 @@ def training(seed, model, args,out_file=None):
             image_grid = torchvision.utils.make_grid(y0, nrow=4, padding=5).permute((1, 2, 0))
 
             plt.imshow(image_grid.cpu().numpy(), cmap='gray')
-            plt.savefig(args.out_dir+'/mnist_samples_28ML'+str(ep))
+            plt.savefig(args.out_dir+'/stone_samples_28'+str(ep))
             plt.close()
             y0 = get_samples(rev_sde, 1, 2*args.input_height, args.num_steps, args.num_samples)[0]
 
@@ -122,7 +126,7 @@ def training(seed, model, args,out_file=None):
             image_grid = torchvision.utils.make_grid(y0, nrow=4, padding=5).permute((1, 2, 0))
 
             plt.imshow(image_grid.cpu().numpy(), cmap='gray')
-            plt.savefig(args.out_dir+'/mnist_samples_56ML'+str(ep))
+            plt.savefig(args.out_dir+'/stone_samples_56'+str(ep))
             plt.close()
 
     print('MINIMUM EPOCH AND MMD')
@@ -130,22 +134,11 @@ def training(seed, model, args,out_file=None):
     print(min_mmd)
 
  
-    return rev_sde, history, loss_list, mmd_list
+    return rev_sde, history, loss_list, mmd_list, test_samp, test_samp_pool
 
 
-def eval_model(rev_sde,loss_list,mmd_list,args):
+def eval_model(rev_sde,loss_list,mmd_list,args, test_samp,test_samp_pool):
     pool = torch.nn.AvgPool2d(2)
-    transform = transforms.Compose([transforms.ToTensor(), transforms.Resize(2*args.input_height)])
-
-    test = torchvision.datasets.MNIST(root='', train=False,
-                                          download=True, transform=transform)
-
-    testloader = torch.utils.data.DataLoader(test, batch_size=args.num_samples_mmd,
-                                              shuffle=True, num_workers=0)
-    test_samp = next(iter(testloader))[0]
-    test_samp_pool = pool(test_samp).view(args.num_samples_mmd,args.input_height**2).to('cpu')
-
-    test_samp = test_samp.view(args.num_samples_mmd,(2*args.input_height)**2).to('cpu')
     # plot loss curves
     plt.figure()
     plt.plot(loss_list) 
@@ -215,13 +208,15 @@ if __name__ == '__main__':
     parser.add_argument('--n_epochs', type=int, default=501, help='ADAM epoch')
     parser.add_argument('--lr', type=float,default=1e-3, help='ADAM learning rate')
 
-    parser.add_argument('--batch_size', type=int, default=256, help='number of training samples in each batch')
+    parser.add_argument('--batch_size', type=int, default=64, help='number of training samples in each batch')
+    parser.add_argument('--steps_per_epoch', type=int, default=100, help='number of steps per epoch')
+
     parser.add_argument('--num_samples', type=int, default=16, help='number of samples for visualization')
     parser.add_argument('--num_samples_mmd', type=int, default=10000, help='number of samples for validation')
 
     parser.add_argument('--num_steps', type=int, default=200, help='number of SDE timesteps')
     parser.add_argument('--input_height', type=int, default=28,  help='starting image dimensions')
-    parser.add_argument('--prior_name', type=str, default='fno', help="prior setup")
+    parser.add_argument('--prior_name', type=str, default='combined_conv', help="prior setup")
     
     parser.add_argument('--model', type=str, default='fno',help='nn model')
     parser.add_argument('--modes', type=int, default=8, help='cutoff modes in FNO')
@@ -260,6 +255,6 @@ if __name__ == '__main__':
     
     makedirs(args.out_dir)
     logger = get_logger(logpath= out_file + '.txt', filepath=os.path.abspath(__file__))
-    rev_sde, history,loss_list,mmd_list = training(args.seed, model, args,out_file=out_file)
-    eval_model(rev_sde,loss_list, mmd_list,args)
+    rev_sde, history,loss_list,mmd_list, test_samp, test_samp_pool = training(args.seed, model, args,out_file=out_file)
+    eval_model(rev_sde,loss_list, mmd_list,args, test_samp, test_samp_pool)
 
