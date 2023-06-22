@@ -243,7 +243,7 @@ if __name__ == '__main__':
     batches = [128, 256, 512]
     numstep_values = [100, 200]
     heights = [50, 100, 200]
-    priorchoices = ['fno','combined_conv'] 
+    priorchoices = ['fno','combined_conv','lap_conv','standard'] 
     modelchoices = ['fno','unet']
     modeschoices = [8, 12, 14]
 
