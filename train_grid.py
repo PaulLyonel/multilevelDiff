@@ -242,7 +242,7 @@ if __name__ == '__main__':
     lrvalues = [1e-3, 1e-4] 
     batches = [128, 256, 512]
     numstep_values = [100, 200]
-    priorchoices = ['fno','combined_conv'] 
+    priorchoices = ['fno','combined_conv','lap_conv','standard'] 
     modelchoices = ['fno','unet']
     modeschoices = [8, 12, 14]
 
