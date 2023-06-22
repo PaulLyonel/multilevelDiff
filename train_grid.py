@@ -22,26 +22,6 @@ from torch.utils.data import Dataset
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-class MyDataset(Dataset):
-    def __init__(self, transform=None):
-        self.image_dir = '/local/scratch/tyang31/multilevelDiff/UTKFace' #os.getcwd() 
-        self.transform = transform
-        self.image_filenames = os.listdir(self.image_dir)
-
-    def __len__(self):
-        return len(self.image_filenames)
-
-    def __getitem__(self, idx):
-        img_path = os.path.join(self.image_dir, self.image_filenames[idx])
-        img = Image.open(img_path).convert('RGB')
-        if self.transform:
-            img = self.transform(img)
-
-        # Assuming image filenames have format 'class_###.jpg'
-        label = int(self.image_filenames[idx].split('_')[0])
-        
-        return img, label
-
 def training(seed, model, args,out_file=None):
     """
     training the score function
