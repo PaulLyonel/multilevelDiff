@@ -242,12 +242,11 @@ if __name__ == '__main__':
     lrvalues = [1e-3, 1e-4] 
     batches = [128, 256, 512]
     numstep_values = [100, 200]
-    heights = [50, 100, 200]
-    priorchoices = ['fno','combined_conv','lap_conv','standard'] 
+    priorchoices = ['fno','combined_conv'] 
     modelchoices = ['fno','unet']
     modeschoices = [8, 12, 14]
 
-    combinations = list(itertools.product(lrvalues, batches, numstep_values, heights, priorchoices, modelchoices, modeschoices))
+    combinations = list(itertools.product(lrvalues, batches, numstep_values, priorchoices, modelchoices, modeschoices))
 
     parser.add_argument('--n_epochs', type=int, default=800, help='ADAM epoch')
     parser.add_argument('--lr', type=float,default=1e-3, choices = lrvalues, help='ADAM learning rate')
@@ -257,7 +256,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_samples_mmd', type=int, default=10000, help='number of samples for validation')
 
     parser.add_argument('--num_steps', type=int, default=200, choices = numstep_values, help='number of SDE timesteps')
-    parser.add_argument('--input_height', type=int, default=100, choices = heights,  help='starting image dimensions')
+    parser.add_argument('--input_height', type=int, default=28, help='starting image dimensions')
     parser.add_argument('--prior_name', type=str, default='fno', choices = priorchoices, help="prior setup")
     
     parser.add_argument('--model', type=str, default='fno', choices = modelchoices, help='nn model')
@@ -293,10 +292,9 @@ if __name__ == '__main__':
         args.lr = combination[0]
         args.batch_size = combination[1]
         args.num_steps = combination[2]
-        args.input_height = combination[3]
-        args.prior_name = combination[4]
-        args.model = combination[5]
-        args.modes = combination[6]
+        args.prior_name = combination[3]
+        args.model = combination[4]
+        args.modes = combination[5]
 
         start_time = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
         if args.out_file is not None:
