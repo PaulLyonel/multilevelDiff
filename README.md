@@ -2,9 +2,9 @@
 Multilevel Diffusion: Infinite Dimensional Score-Based Diffusion Models for Image Generation
 
 Code accommpanying the paper "Multilevel Diffusion: Infinite Dimensional Score-Based Diffusion Models for Image Generation" (arXiv: 2303.04772)[1].
-This repo heavily builds upon the repo https://github.com/CW-Huang/sdeflow-light from [1]. Furthermore, for the FNO [2] implementation we use an 
-earlier version of the official FNO repo https://github.com/neuraloperator/neuraloperator. For the metrics we build upon the repo https://github.com/layer6ai-labs/dgm-eval from [3] 
-and the Riesz MMD [4] is from the repo https://github.com/fabianaltekrueger/neuralwassersteingradientflows.
+This repo heavily builds upon the repo https://github.com/CW-Huang/sdeflow-light from [2]. Furthermore, for the FNO [3] implementation we use an 
+earlier version of the official FNO repo https://github.com/neuraloperator/neuraloperator. For the metrics we build upon the repo https://github.com/layer6ai-labs/dgm-eval from [4] 
+and the Riesz MMD [5] is from the repo https://github.com/fabianaltekrueger/neuralwassersteingradientflows.
 
 Linked papers: 
 [1] Multilevel Diffusion: Infinite Dimensional Score-Based Diffusion Models for Image Generation, Hagemann et al, arXiv 2303.04772
