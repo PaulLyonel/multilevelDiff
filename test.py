@@ -16,6 +16,7 @@ from metrics import *
 
 
 parser = argparse.ArgumentParser(description='Test arguments')
+parser.add_argument('--dataset', type=str, default='MNIST', choices = ['MNIST', 'FashionMNIST'], help='dataset types')
 parser.add_argument('--out_dir', type=str, default='test', help='directory for result')
 parser.add_argument('--out_file', type=str, default='test', help='base file name for result')
 parser.add_argument('--save_model', type=str, default=False,help='saved checkpoint')
