@@ -11,7 +11,7 @@ and the Riesz MMD [5] is from the repo https://github.com/fabianaltekrueger/neur
 Train the Infinite Dimensional Score-Based Diffusion Models, and save a checkpoint
 ```
 main.py 
-	[--dataset {MNIST,FashionMNIST}] [--n_epochs N_EPOCHS] [--lr {0.001,0.0001}]
+    [--dataset {MNIST,FashionMNIST}] [--n_epochs N_EPOCHS] [--lr {0.001,0.0001}]
     [--batch_size {256}] [--num_samples NUM_SAMPLES] [--num_samples_mmd NUM_SAMPLES_MMD]
     [--num_steps {200}] [--input_height INPUT_HEIGHT]
     [--prior_name {fno,combined_conv,lap_conv,standard}] [--width {32,64,128}]
@@ -19,7 +19,7 @@ main.py
     [--seed SEED] [--out_dir OUT_DIR] [--out_file OUT_FILE] [--save SAVE]
 ```
 
-Generate new samples and corresponding MMD, diversity metrics
+Generate new samples and the corresponding MMD, diversity metrics
 ```
 test.py
     --save_model [add your saved checkpoint here]
