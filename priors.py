@@ -61,10 +61,11 @@ class ImplicitConv(nn.Module):
     where K is a  stencil, e.g., the standard 5-point Laplacian.
     """
 
-    def __init__(self,K=None):
+    def __init__(self,K=None, scale=10):
         super(ImplicitConv, self).__init__()
-        # tbd: check if K is separable
+        
         self.K = K
+        self.scale = scale
 
     def __repr__(self):
         Knum = self.K.numpy()
@@ -109,7 +110,7 @@ class ImplicitConv(nn.Module):
         xh = xh.to(device)
         lam[torch.isinf(lam)] = 0.0
         xBh = xh * lam.unsqueeze(0).unsqueeze(0)
-        xB = torch.fft.irfft2(xBh)
+        xB = self.scale * torch.fft.irfft2(xBh)
         return xB,lam
 
 
@@ -122,10 +123,11 @@ class CombinedConv(nn.Module):
     where K is a  stencil, e.g., the standard 5-point Laplacian.
     """
 
-    def __init__(self,K=None,k1=28,k2=14):
+    def __init__(self,K=None,k1=28,k2=14,scale=10):
         super(CombinedConv, self).__init__()
-        # tbd: check if K is separable
+        
         self.K = K
+        self.scale = scale
         self.conv = SpectralConv2d(1,1,k1,k2, rand = False).to(device)
 
 
@@ -167,7 +169,7 @@ class CombinedConv(nn.Module):
         xh = xh.to(device)
         lam[torch.isinf(lam)] = 0.0
         xBh = xh * lam.unsqueeze(0).unsqueeze(0)
-        xB = 10*torch.fft.irfft2(xBh)
+        xB = (self.scale)*torch.fft.irfft2(xBh)
         return xB,lam
 
 if __name__ == '__main__':
