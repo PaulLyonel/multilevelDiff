@@ -22,12 +22,12 @@ main.py
 Generate new samples and the corresponding MMD, diversity metrics
 ```
 test.py
-    --save_model [add your saved checkpoint here]
+    --save_model [add your saved checkpoint here].pt
 ```
 
 ## Quick Overview
 - `fno.py` Fourier neural operator layer and network used in the archetecture, and the prior.
-- `sde.py` Forward and reverse SDEs, score macthing loss
+- `sde.py` Forward and reverse SDEs, score macthing loss.
 - `metrics.py` MMD and Vendi diversity score.
 
 
