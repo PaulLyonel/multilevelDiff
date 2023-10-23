@@ -10,6 +10,11 @@ and the Riesz MMD [5] is from the repo https://github.com/fabianaltekrueger/neur
 
 Train the Infinite Dimensional Score-Based Diffusion Models, and save a checkpoint
 ```
+python main.py
+```
+
+You can use the default hyperparameters. Or you can change --dataset, --prior_name, --model to customize the generated dataset, prior, and architecture, respectively. The best hyperparameters for different setups are elaborated in the paper.
+```
 main.py 
     [--dataset {MNIST,FashionMNIST}] [--n_epochs N_EPOCHS] [--lr {0.001,0.0001}]
     [--batch_size {256}] [--num_samples NUM_SAMPLES] [--num_samples_mmd NUM_SAMPLES_MMD]
@@ -21,7 +26,7 @@ main.py
 
 Generate new samples and the corresponding MMD, diversity metrics
 ```
-test.py
+python test.py
     --save_model [add your saved checkpoint here].pt
     --dataset [dataset used in the checkpoint. MNIST or FashionMNIST]
 ```
