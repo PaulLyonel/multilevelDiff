@@ -27,8 +27,8 @@ test.py
 ```
 
 ## Quick Overview
-- `fno.py` Fourier neural operator layer and network used in the archetecture, and the prior.
-- `sde.py` Forward and reverse SDEs, score macthing loss.
+- `fno.py` Fourier neural operator layer and network used in the architecture, and the prior.
+- `sde.py` Forward and reverse SDEs, denoising score matching loss.
 - `metrics.py` MMD and Vendi diversity score.
 
 
