@@ -23,6 +23,7 @@ Generate new samples and the corresponding MMD, diversity metrics
 ```
 test.py
     --save_model [add your saved checkpoint here].pt
+    --dataset [dataset used in the checkpoint. MNIST or FashionMNIST]
 ```
 
 ## Quick Overview
