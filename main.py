@@ -202,7 +202,7 @@ if __name__ == '__main__':
     combinations = list(itertools.product(lrvalues, batches, numstep_values, priorchoices, modelchoices, modeschoices,widthchoices))
     parser.add_argument('--dataset', type=str, default='MNIST', choices = ['MNIST', 'FashionMNIST'], help='dataset types')
     parser.add_argument('--n_epochs', type=int, default=501, help='ADAM epoch')
-    parser.add_argument('--lr', type=float,default=1e-3, choices = lrvalues, help='ADAM learning rate')
+    parser.add_argument('--lr', type=float,default=1e-4, choices = lrvalues, help='ADAM learning rate')
     parser.add_argument('--batch_size', type=int, default=256, choices = batches, help='number of training samples in each batch')
     parser.add_argument('--num_samples', type=int, default=16, help='number of samples for visualization')
     parser.add_argument('--num_samples_mmd', type=int, default=10000, help='number of samples for validation')
@@ -228,9 +228,9 @@ if __name__ == '__main__':
         model = UNet(
         input_channels=1,
         input_height=args.input_height,
-        ch=32,
+        ch=64,
         ch_mult=(1, 2, 2),
-        num_res_blocks=2,
+        num_res_blocks=4,
         resamp_with_conv=True,).to(device)
 
     input_channels = 1
