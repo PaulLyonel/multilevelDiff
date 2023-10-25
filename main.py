@@ -208,7 +208,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_samples_mmd', type=int, default=10000, help='number of samples for validation')
     parser.add_argument('--num_steps', type=int, default=200, choices = numstep_values, help='number of SDE timesteps')
     parser.add_argument('--input_height', type=int, default=28, help='starting image dimensions')
-    parser.add_argument('--prior_name', type=str, default='fno', choices = priorchoices, help="prior setup")
+    parser.add_argument('--prior_name', type=str, default='combined_conv', choices = priorchoices, help="prior setup")
     parser.add_argument('--width', type=str, default=64, choices = widthchoices, help="prior setup")
     parser.add_argument('--model', type=str, default='fno', choices = modelchoices, help='nn model')
     parser.add_argument('--modes', type=int, default=14, choices = modeschoices, help='cutoff modes in FNO')
@@ -217,7 +217,6 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=1, help='seed for random number generator')
     parser.add_argument('--out_dir', type=str, default='result', help='directory for result')
     parser.add_argument('--out_file', type=str, default='result', help='base file name for result')
-    parser.add_argument('--save', type=bool, default=False,help='save from model')
 
     args = parser.parse_args()
 
