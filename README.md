@@ -1,9 +1,7 @@
 # Multilevel Diffusion: Infinite Dimensional Score-Based Diffusion Models for Image Generation
 
 This repo includes the implementation of well-posed infinite dimensional SBDM. This code accommpanies the paper "Multilevel Diffusion: Infinite Dimensional Score-Based Diffusion Models for Image Generation" (arXiv: 2303.04772)[1].
-We explore diffusion models in function spaces for generating images at varying resolutions, here at 28 and 56.
-
-<img src="https://github.com/PaulLyonel/multilevelDiff/blob/main/title_imgs/mnist_samples_28fnocc.png"  width="250"> <img src="https://github.com/PaulLyonel/multilevelDiff/blob/main/title_imgs/mnist_samples_56fnocc.png"  width="250"> 
+We explore diffusion models in function spaces for generating images at varying resolutions.
 
 
 This repo heavily builds upon the repo https://github.com/CW-Huang/sdeflow-light from [2]. 
