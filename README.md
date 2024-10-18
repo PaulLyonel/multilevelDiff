@@ -41,6 +41,18 @@ main.py
     [--seed SEED] [--out_dir OUT_DIR] [--out_file OUT_FILE] [--save SAVE]
 ```
 
+For PDE experiments, download the dataset from PDEBench (https://github.com/pdebench/PDEBench/tree/main). For example,
+```
+git clone https://github.com/pdebench/PDEBench.git
+python download_direct.py --root_folder $proj_home/data --pde_name 2d_reacdiff
+```
+Then run
+```
+main_pde.py 
+    [--prior_name {bessel,fno,combined_conv,lap_conv,standard}]
+```
+
+
 Generate new samples and the corresponding MMD, diversity metrics
 ```
 python test.py
