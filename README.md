@@ -25,6 +25,8 @@ and the Riesz MMD [5] is from the repo https://github.com/fabianaltekrueger/neur
 
 ## Usage
 
+For the Gaussian Mixture Toy example, run create a folder gmm_results, in which the plots from Section 5.1 are produced. Note that degenerate priors should not work well in this experiment, as we cannot invert the covariance matrix. 
+
 Train the Infinite Dimensional Score-Based Diffusion Models, and save a checkpoint
 ```
 python main.py
@@ -40,6 +42,9 @@ main.py
     [--model {unet,fno}] [--modes {12,14,15}] [--viz_freq VIZ_FREQ] [--val_freq VAL_FREQ]
     [--seed SEED] [--out_dir OUT_DIR] [--out_file OUT_FILE] [--save SAVE]
 ```
+
+For the Warmstarting example, run create a folder warmstarting_results, which saves some images. This function saves the times and losses as np arrays, which can then be used to reproduce the results from Section 5.3.
+
 
 For PDE experiments, download the dataset from PDEBench (https://github.com/pdebench/PDEBench/tree/main). For example,
 ```
@@ -59,6 +64,8 @@ python test.py
     --save_model [add your saved checkpoint here].pt
     --dataset [dataset used in the checkpoint. MNIST or FashionMNIST]
 ```
+
+ 
 
 ## Quick Overview
 - `fno.py` Fourier neural operator layer and network used in the architecture, and the prior.
