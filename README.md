@@ -32,15 +32,14 @@ Train the Infinite Dimensional Score-Based Diffusion Models, and save a checkpoi
 python main.py
 ```
 
-You can use the default hyperparameters. Or you can change --dataset, --prior_name, --model to customize the generated dataset, prior, and architecture, respectively. The best hyperparameters for different setups are elaborated in the paper.
+You can use the default hyperparameters. The best hyperparameters for different setups are elaborated in the paper.
 ```
 main.py 
-    [--dataset {MNIST,FashionMNIST}] [--n_epochs N_EPOCHS] [--lr {0.001,0.0001}]
-    [--batch_size {256}] [--num_samples NUM_SAMPLES] [--num_samples_mmd NUM_SAMPLES_MMD]
-    [--num_steps {200}] [--input_height INPUT_HEIGHT]
-    [--prior_name {fno,combined_conv,lap_conv,standard}] [--width {32,64,128}]
-    [--model {unet,fno}] [--modes {12,14,15}] [--viz_freq VIZ_FREQ] [--val_freq VAL_FREQ]
-    [--seed SEED] [--out_dir OUT_DIR] [--out_file OUT_FILE] [--save SAVE]
+    [--n_epochs N_EPOCHS] [--lr {0.001,0.0001}]
+    [--batch_size {256}] [--num_samples NUM_SAMPLES][--input_height INPUT_HEIGHT]
+    [--prior_name {fno,combined_conv,lap_conv,standard, bessel}] [--width {32,64,128}]
+    [--model {unet,fno}] [--modes {12,14,15}]
+    [--seed SEED] [--out_dir OUT_DIR]
 ```
 
 For the Warmstarting example, run create a folder warmstarting_results, which saves some images. This function saves the times and losses as np arrays, which can then be used to reproduce the results from Section 5.3.
